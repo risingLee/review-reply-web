@@ -4,7 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>ReviewReply AI - Negative Review Reply Generator</title>
-  <meta name="description" content="AI-powered tool to generate professional replies to negative reviews. 3 free generations, then pay-as-you-go.">
+  <meta name="description" content="AI-powered tool to generate professional replies to negative reviews. Free to use.">
+  
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'GA_MEASUREMENT_ID');
+  </script>
+  
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -113,9 +123,9 @@
   </style>
 </head>
 <body>
-  <!-- Credits Badge -->
-  <div class="credits-badge" id="creditsBadge" onclick="showPaywall()">
-    ⚡ <span id="creditsText">3 credits left</span>
+  <!-- Credits Badge（点击打开支付弹窗，免费模式下可隐藏）-->
+  <div class="credits-badge" id="creditsBadge" onclick="if(PAYMENT_ENABLED)showPaywall()">
+    ⚡ <span id="creditsText">Free</span>
   </div>
 
   <!-- Language Switch -->
@@ -209,8 +219,8 @@
     </div>
   </div>
 
-  <!-- Paywall Modal -->
-  <div class="modal-mask" id="paywallModal">
+  <!-- Paywall Modal (hidden by default, enable with PAYMENT_ENABLED) -->
+  <div class="modal-mask" id="paywallModal" style="display:none">
     <div class="modal-content">
       <div class="modal-emoji">⚡</div>
       <div class="modal-title" id="paywallTitle">Out of Credits</div>
@@ -238,12 +248,16 @@
 
   <script>
     // ========== Config ==========
-    const LEMON_SQUEEZY_STORE = "your-store"; // 替换为你的 Lemon Squeezy store
+    // 支付配置（暂不启用）
+    const PAYMENT_ENABLED = false;
+    const LEMON_SQUEEZY_STORE = "your-store";
     const LEMON_SQUEEZY_VARIANTS = {
       '20': 'variant-id-20',
-      '100': 'variant-id-100',
+      '100': 'variant-id-100', 
       'unlimited': 'variant-id-unlimited'
     };
+    // Google Analytics ID（替换为你的）
+    const GA_ID = 'GA_MEASUREMENT_ID';
 
     // ========== i18n ==========
     const i18n = {
@@ -374,7 +388,9 @@
       setTimeout(() => t.classList.remove('show'), 1500);
     }
 
+    // 支付弹窗（暂不显示）
     function showPaywall() {
+      if (!PAYMENT_ENABLED) return;
       document.getElementById('paywallModal').classList.add('show');
     }
 
@@ -383,6 +399,7 @@
     }
 
     function buyCredits(variant) {
+      if (!PAYMENT_ENABLED) return;
       const variantId = LEMON_SQUEEZY_VARIANTS[variant];
       const checkoutUrl = `https://${LEMON_SQUEEZY_STORE}.lemonsqueezy.com/checkout/buy/${variantId}?checkout[custom][userId]=${userId}&checkout[custom][variant]=${variant}`;
       window.open(checkoutUrl, '_blank');
@@ -402,8 +419,12 @@
       }
 
       if (!unlimited && credits <= 0) {
-        showPaywall();
-        return;
+        if (PAYMENT_ENABLED) {
+          showPaywall();
+          return;
+        }
+        // 免费模式：重置为无限
+        credits = 999;
       }
 
       const btn = document.getElementById('generateBtn');
@@ -424,7 +445,7 @@
         });
         const data = await resp.json();
 
-        if (resp.status === 403 && data.code === 'NO_CREDITS') {
+        if (resp.status === 403 && data.code === 'NO_CREDITS' && PAYMENT_ENABLED) {
           credits = 0;
           updateCreditsDisplay();
           showPaywall();
@@ -478,12 +499,17 @@
       switchLang(lang);
       checkCredits();
 
-      // Check for payment success (from URL param)
+      // Check for payment success
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('payment') === 'success') {
         showToast(currentLang === 'zh' ? '支付成功！' : 'Payment successful!');
         checkCredits();
         history.replaceState({}, '', location.pathname);
+      }
+
+      // Track page view
+      if (typeof gtag !== 'undefined' && GA_ID !== 'GA_MEASUREMENT_ID') {
+        gtag('config', GA_ID, { page_title: document.title, page_location: location.href });
       }
     })();
 
