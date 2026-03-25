@@ -24,6 +24,18 @@
       border-radius: 20px; font-size: 12px; color: #f7b731;
     }
 
+    /* Language switcher */
+    .lang-switch {
+      position: fixed; top: 16px; right: 16px; z-index: 100;
+      display: flex; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px; overflow: hidden;
+    }
+    .lang-btn {
+      padding: 6px 14px; font-size: 12px; color: rgba(255,255,255,0.5);
+      cursor: pointer; transition: all 0.15s; border: none; background: none;
+    }
+    .lang-btn.active { background: rgba(247,183,49,0.2); color: #f7b731; }
+
     .card {
       background: rgba(255,255,255,0.06); backdrop-filter: blur(10px);
       border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
@@ -154,6 +166,11 @@
   </style>
 </head>
 <body>
+  <div class="lang-switch">
+    <button class="lang-btn active" data-lang="en" onclick="switchLang('en')">EN</button>
+    <button class="lang-btn" data-lang="zh" onclick="switchLang('zh')">中文</button>
+  </div>
+
   <div class="container">
     <div class="header">
       <h1>⭐ Review<span class="accent">Reply</span> AI</h1>
@@ -168,17 +185,17 @@
 
     <!-- Review Input -->
     <div class="card">
-      <div class="card-title">📋 Paste the Negative Review</div>
+      <div class="card-title" data-i18n="pasteTitle">📋 Paste the Negative Review</div>
       <textarea class="review-input" id="reviewText" placeholder="e.g. This product broke after 2 days. Total waste of money. Very disappointed..." maxlength="1000"></textarea>
       <div class="char-count"><span id="charCount">0</span>/1000</div>
     </div>
 
     <!-- Options -->
     <div class="card">
-      <div class="card-title">⚙️ Options</div>
+      <div class="card-title" data-i18n="optionsTitle">⚙️ Options</div>
       <div class="options-row">
         <div class="option-group">
-          <div class="option-label">Product Category</div>
+          <div class="option-label" data-i18n="categoryLabel">Product Category</div>
           <select class="option-select" id="productType">
             <option value="">Any</option>
             <option value="Electronics">Electronics</option>
@@ -192,7 +209,7 @@
           </select>
         </div>
         <div class="option-group">
-          <div class="option-label">Star Rating</div>
+          <div class="option-label" data-i18n="ratingLabel">Star Rating</div>
           <div class="stars">
             <div class="star active" data-rating="1" onclick="selectRating(1)">⭐</div>
             <div class="star" data-rating="2" onclick="selectRating(2)">⭐</div>
@@ -218,54 +235,169 @@
 
     <!-- Results -->
     <div class="results-section" id="results">
-      <div class="results-title">📤 Your Replies</div>
+      <div class="results-title" data-i18n="resultsTitle">📤 Your Replies</div>
 
       <div class="result-card professional">
         <div class="result-header">
-          <span class="result-tag tag-pro">👔 Professional</span>
-          <span class="result-hint">Standard CS tone</span>
+          <span class="result-tag tag-pro" data-i18n="tagPro">👔 Professional</span>
+          <span class="result-hint" data-i18n="hintPro">Standard CS tone</span>
         </div>
         <div class="result-text" id="proText"></div>
-        <div class="copy-btn" onclick="copyText('proText')">📋 Copy</div>
+        <div class="copy-btn" data-i18n="copy" onclick="copyText('proText')">📋 Copy</div>
       </div>
 
       <div class="result-card friendly">
         <div class="result-header">
-          <span class="result-tag tag-friendly">😊 Friendly</span>
-          <span class="result-hint">Warm & conversational</span>
+          <span class="result-tag tag-friendly" data-i18n="tagFriendly">😊 Friendly</span>
+          <span class="result-hint" data-i18n="hintFriendly">Warm & conversational</span>
         </div>
         <div class="result-text" id="friendlyText"></div>
-        <div class="copy-btn" onclick="copyText('friendlyText')">📋 Copy</div>
+        <div class="copy-btn" data-i18n="copy" onclick="copyText('friendlyText')">📋 Copy</div>
       </div>
 
       <div class="result-card brand">
         <div class="result-header">
-          <span class="result-tag tag-brand">🏆 Brand Voice</span>
-          <span class="result-hint">Premium & polished</span>
+          <span class="result-tag tag-brand" data-i18n="tagBrand">🏆 Brand Voice</span>
+          <span class="result-hint" data-i18n="hintBrand">Premium & polished</span>
         </div>
         <div class="result-text" id="brandText"></div>
-        <div class="copy-btn" onclick="copyText('brandText')">📋 Copy</div>
+        <div class="copy-btn" data-i18n="copy" onclick="copyText('brandText')">📋 Copy</div>
       </div>
 
       <div class="result-actions">
-        <div class="action-btn" onclick="retry()">🔄 Regenerate</div>
-        <div class="action-btn" onclick="share()">📤 Share</div>
+        <div class="action-btn" data-i18n="regenerate" onclick="retry()">🔄 Regenerate</div>
+        <div class="action-btn" data-i18n="share" onclick="share()">📤 Share</div>
       </div>
     </div>
 
     <div class="footer">
-      <div class="footer-text">Built for Shopify sellers · No sign-up required · 100% Free</div>
+      <div class="footer-text" data-i18n="footer">Built for Shopify sellers · No sign-up required · 100% Free</div>
     </div>
   </div>
 
   <div class="toast" id="toast"></div>
 
   <script>
-    const examples = [
-      { text: 'Product broke after 2 days. Complete waste of money. I want a refund.', type: 'Electronics', rating: 1 },
-      { text: 'Looks nothing like the photos. The color is totally different and the material feels cheap. Very misleading listing.', type: 'Clothing & Fashion', rating: 1 },
-      { text: 'Took 3 weeks to arrive and the package was damaged. Customer service was unhelpful.', type: '', rating: 2 },
-    ];
+    // ========== i18n ==========
+    const i18n = {
+      en: {
+        title: '⭐ Review<span class="accent">Reply</span> AI',
+        subtitle: 'Turn negative reviews into opportunities.<br>Generate professional replies in seconds.',
+        badge: '🚀 Free for Shopify Sellers',
+        stat1: 'Reply Styles', stat2: 'Generation', stat3: 'No Sign Up',
+        pasteTitle: '📋 Paste the Negative Review',
+        placeholder: 'e.g. This product broke after 2 days. Total waste of money...',
+        optionsTitle: '⚙️ Options',
+        categoryLabel: 'Product Category',
+        ratingLabel: 'Star Rating',
+        categories: ['Any','Electronics','Clothing & Fashion','Home & Garden','Beauty & Health','Food & Beverage','Toys & Games','Sports & Outdoors','Pet Supplies'],
+        examplesLabel: '💡 Try these examples',
+        ex1: '"Product broke after 2 days. Complete waste of money."',
+        ex2: '"Looks nothing like the photos. Very misleading listing."',
+        ex3: '"Took 3 weeks to arrive and the package was damaged."',
+        btnGenerate: '⚡ Generate Reply',
+        btnGenerating: 'Generating...',
+        resultsTitle: '📤 Your Replies',
+        tagPro: '👔 Professional', hintPro: 'Standard CS tone',
+        tagFriendly: '😊 Friendly', hintFriendly: 'Warm & conversational',
+        tagBrand: '🏆 Brand Voice', hintBrand: 'Premium & polished',
+        copy: '📋 Copy', regenerate: '🔄 Regenerate', share: '📤 Share',
+        footer: 'Built for Shopify sellers · No sign-up required · 100% Free',
+        errEmpty: 'Please paste a review first',
+        errFail: 'Generation failed. Please try again.',
+        copied: 'Copied! ✅', linkCopied: 'Link copied!',
+      },
+      zh: {
+        title: '⭐ 差评<span class="accent">修复</span>助手',
+        subtitle: '把差评变成挽回客户的机会。<br>一键生成专业回复。',
+        badge: '🚀 免费使用，无需注册',
+        stat1: '回复风格', stat2: '生成速度', stat3: '无需注册',
+        pasteTitle: '📋 粘贴差评内容',
+        placeholder: '例如：这个产品用了两天就坏了，完全浪费钱...',
+        optionsTitle: '⚙️ 选项',
+        categoryLabel: '产品类别',
+        ratingLabel: '星级评分',
+        categories: ['不限','电子产品','服装时尚','家居园艺','美妆健康','食品饮料','玩具游戏','运动户外','宠物用品'],
+        examplesLabel: '💡 试试这些',
+        ex1: '"产品用了两天就坏了，完全浪费钱。"',
+        ex2: '"跟图片完全不一样，太坑了。"',
+        ex3: '"等了三周才到，包装还是破的。"',
+        btnGenerate: '⚡ 生成回复',
+        btnGenerating: '生成中...',
+        resultsTitle: '📤 回复结果',
+        tagPro: '👔 专业客服版', hintPro: '标准客服语气',
+        tagFriendly: '😊 亲切版', hintFriendly: '温暖有人情味',
+        tagBrand: '🏆 品牌版', hintBrand: '高端品牌调性',
+        copy: '📋 复制', regenerate: '🔄 换一批', share: '📤 分享',
+        footer: '为电商卖家打造 · 无需注册 · 完全免费',
+        errEmpty: '请先粘贴差评内容',
+        errFail: '生成失败，请重试',
+        copied: '已复制 ✅', linkCopied: '链接已复制！',
+      }
+    };
+
+    let currentLang = 'en';
+    const categoryValues = ['','Electronics','Clothing & Fashion','Home & Garden','Beauty & Health','Food & Beverage','Toys & Games','Sports & Outdoors','Pet Supplies'];
+
+    const examples_data = {
+      en: [
+        { text: 'Product broke after 2 days. Complete waste of money. I want a refund.', type: 'Electronics', rating: 1 },
+        { text: 'Looks nothing like the photos. The color is totally different and the material feels cheap.', type: 'Clothing & Fashion', rating: 1 },
+        { text: 'Took 3 weeks to arrive and the package was damaged. Customer service was unhelpful.', type: '', rating: 2 },
+      ],
+      zh: [
+        { text: '产品用了两天就坏了，完全浪费钱，要求退款。', type: 'Electronics', rating: 1 },
+        { text: '跟图片完全不一样，颜色差很多，材质也很差。', type: 'Clothing & Fashion', rating: 1 },
+        { text: '等了三周才到货，包装还是破的，客服也不管。', type: '', rating: 2 },
+      ]
+    };
+
+    function switchLang(lang) {
+      currentLang = lang;
+      document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+      applyLang();
+    }
+
+    function applyLang() {
+      const t = i18n[currentLang];
+      document.querySelector('.header h1').innerHTML = t.title;
+      document.querySelector('.header p').innerHTML = t.subtitle;
+      document.querySelector('.badge').textContent = t.badge;
+      const stats = document.querySelectorAll('.stat-label');
+      stats[0].textContent = t.stat1; stats[1].textContent = t.stat2; stats[2].textContent = t.stat3;
+      document.querySelector('[data-i18n="pasteTitle"]').textContent = t.pasteTitle;
+      document.getElementById('reviewText').placeholder = t.placeholder;
+      document.querySelector('[data-i18n="optionsTitle"]').textContent = t.optionsTitle;
+      document.querySelector('[data-i18n="categoryLabel"]').textContent = t.categoryLabel;
+      document.querySelector('[data-i18n="ratingLabel"]').textContent = t.ratingLabel;
+      // 更新下拉选项
+      const sel = document.getElementById('productType');
+      t.categories.forEach((cat, i) => { sel.options[i].textContent = cat; });
+      document.querySelector('.examples-label').textContent = t.examplesLabel;
+      const chips = document.querySelectorAll('.example-chip');
+      chips[0].textContent = t.ex1; chips[1].textContent = t.ex2; chips[2].textContent = t.ex3;
+      document.getElementById('generateBtn').innerHTML = t.btnGenerate;
+      document.querySelector('.results-title').textContent = t.resultsTitle;
+      document.querySelectorAll('.result-tag')[0].textContent = t.tagPro;
+      document.querySelectorAll('.result-hint')[0].textContent = t.hintPro;
+      document.querySelectorAll('.result-tag')[1].textContent = t.tagFriendly;
+      document.querySelectorAll('.result-hint')[1].textContent = t.hintFriendly;
+      document.querySelectorAll('.result-tag')[2].textContent = t.tagBrand;
+      document.querySelectorAll('.result-hint')[2].textContent = t.hintBrand;
+      document.querySelectorAll('.copy-btn').forEach(b => b.lastChild.textContent = ' Copy');
+      if (currentLang === 'zh') document.querySelectorAll('.copy-btn').forEach(b => b.lastChild.textContent = ' 复制');
+      document.querySelectorAll('.action-btn')[0].textContent = t.regenerate;
+      document.querySelectorAll('.action-btn')[1].textContent = t.share;
+      document.querySelector('.footer-text').textContent = t.footer;
+      document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : 'en';
+    }
+
+    // 自动检测语言
+    function detectLang() {
+      const browserLang = navigator.language || navigator.userLanguage || 'en';
+      return browserLang.startsWith('zh') ? 'zh' : 'en';
+    }
+
     let selectedRating = 1;
     let loading = false;
 
@@ -281,7 +413,7 @@
     }
 
     function useExample(idx) {
-      const ex = examples[idx];
+      const ex = examples_data[currentLang][idx];
       document.getElementById('reviewText').value = ex.text;
       document.getElementById('charCount').textContent = ex.text.length;
       if (ex.type) document.getElementById('productType').value = ex.type;
@@ -298,10 +430,11 @@
       if (loading) return;
       const review = document.getElementById('reviewText').value.trim();
       const errorMsg = document.getElementById('errorMsg');
+      const t = i18n[currentLang];
       errorMsg.classList.remove('show');
 
       if (!review) {
-        errorMsg.textContent = 'Please paste a review first';
+        errorMsg.textContent = t.errEmpty;
         errorMsg.classList.add('show');
         return;
       }
@@ -309,16 +442,16 @@
       const productType = document.getElementById('productType').value;
       const btn = document.getElementById('generateBtn');
       loading = true; btn.disabled = true;
-      btn.innerHTML = '<span class="loading"><span class="dot-pulse"></span> Generating...</span>';
+      btn.innerHTML = `<span class="loading"><span class="dot-pulse"></span> ${t.btnGenerating}</span>`;
 
       try {
         const resp = await fetch('/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ review, productType, rating: `${selectedRating} star` }),
+          body: JSON.stringify({ review, productType, rating: `${selectedRating} star`, lang: currentLang }),
         });
         const data = await resp.json();
-        if (!resp.ok || !data.success) throw new Error(data.error || 'Generation failed');
+        if (!resp.ok || !data.success) throw new Error(data.error || t.errFail);
 
         document.getElementById('proText').textContent = data.data.professional;
         document.getElementById('friendlyText').textContent = data.data.friendly;
@@ -326,22 +459,23 @@
         document.getElementById('results').classList.add('show');
         document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       } catch (err) {
-        errorMsg.textContent = err.message || 'Generation failed. Please try again.';
+        errorMsg.textContent = err.message || t.errFail;
         errorMsg.classList.add('show');
       } finally {
         loading = false; btn.disabled = false;
-        btn.innerHTML = '⚡ Generate Reply';
+        btn.innerHTML = t.btnGenerate;
       }
     }
 
     function copyText(id) {
       const text = document.getElementById(id).textContent;
-      navigator.clipboard.writeText(text).then(() => showToast('Copied! ✅')).catch(() => {
+      const msg = i18n[currentLang].copied;
+      navigator.clipboard.writeText(text).then(() => showToast(msg)).catch(() => {
         const ta = document.createElement('textarea');
         ta.value = text; document.body.appendChild(ta);
         ta.select(); document.execCommand('copy');
         document.body.removeChild(ta);
-        showToast('Copied! ✅');
+        showToast(msg);
       });
     }
 
@@ -351,16 +485,25 @@
     }
 
     function share() {
+      const t = i18n[currentLang];
       if (navigator.share) {
-        navigator.share({ title: 'ReviewReply AI', text: 'Free AI tool to reply to negative reviews', url: location.href });
+        navigator.share({ title: 'ReviewReply AI', text: currentLang === 'zh' ? '差评修复助手 - 一键生成专业回复' : 'Free AI tool to reply to negative reviews', url: location.href });
       } else {
-        navigator.clipboard.writeText(location.href).then(() => showToast('Link copied!'));
+        navigator.clipboard.writeText(location.href).then(() => showToast(t.linkCopied));
       }
     }
 
     document.getElementById('reviewText').addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); generate(); }
     });
+
+    // 初始化：自动检测语言
+    (function init() {
+      const lang = detectLang();
+      currentLang = lang;
+      document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+      applyLang();
+    })();
   </script>
 </body>
 </html>

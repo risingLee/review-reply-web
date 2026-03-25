@@ -33,7 +33,7 @@ function callHunyuan(prompt) {
     const body = JSON.stringify({
       Model: "hunyuan-lite",
       Messages: [
-        { Role: "system", Content: "You are a senior e-commerce customer service expert. You help Shopify sellers craft professional, empathetic replies to negative reviews that protect brand image and encourage customers to update their reviews." },
+        { Role: "system", Content: "You are a senior e-commerce customer service expert. You help Shopify sellers craft professional, empathetic replies to negative reviews. Output ONLY the reply text for each style, no markdown, no headers, no formatting marks." },
         { Role: "user", Content: prompt },
       ],
       Temperature: 0.8, TopP: 0.9, Stream: false,
@@ -65,19 +65,58 @@ function callHunyuan(prompt) {
   });
 }
 
+// 清理markdown和多余标记
+function cleanText(str) {
+  return str
+    .replace(/^#{1,4}\s*.*/gm, '')       // 移除 ### 标题行
+    .replace(/\*\*(.*?)\*\*/g, '$1')     // 移除 **粗体**
+    .replace(/^\s*[-*]\s*/gm, '')        // 移除列表标记
+    .replace(/```[\s\S]*?```/g, '')      // 移除代码块
+    .replace(/^\s*>\s*/gm, '')           // 移除引用
+    .replace(/\n{3,}/g, '\n\n')          // 合并多余空行
+    .trim();
+}
+
 function parseResponse(text) {
   const result = { professional: "", friendly: "", brand: "" };
-  const p = text.match(/\[Professional\][：:]*\s*([\s\S]*?)(?=\[Friendly\]|$)/i);
-  const f = text.match(/\[Friendly\][：:]*\s*([\s\S]*?)(?=\[Brand Voice\]|$)/i);
-  const b = text.match(/\[Brand Voice\][：:]*\s*([\s\S]*?)$/i);
-  if (p) result.professional = p[1].trim();
-  if (f) result.friendly = f[1].trim();
-  if (b) result.brand = b[1].trim();
-  if (!result.professional && !result.friendly && !result.brand) {
-    const lines = text.split("\n").filter(l => l.trim());
-    if (lines.length >= 3) { result.professional = lines[0]; result.friendly = lines[1]; result.brand = lines[2]; }
-    else { result.professional = result.friendly = result.brand = text.trim(); }
+  
+  // 尝试多种分隔模式
+  const patterns = [
+    // [Professional] ... [Friendly] ... [Brand Voice]
+    { p: /\[Professional\][：:\s]*([\s\S]*?)(?=\[Friendly\])/i, f: /\[Friendly\][：:\s]*([\s\S]*?)(?=\[Brand Voice\])/i, b: /\[Brand Voice\][：:\s]*([\s\S]*?)$/i },
+    // **Professional** / **Friendly** / **Brand Voice**
+    { p: /\*?\*?Professional\*?\*?[：:\s]*([\s\S]*?)(?=\*?\*?Friendly)/i, f: /\*?\*?Friendly\*?\*?[：:\s]*([\s\S]*?)(?=\*?\*?Brand)/i, b: /\*?\*?Brand\s*Voice?\*?\*?[：:\s]*([\s\S]*?)$/i },
+    // ### Professional / ### Friendly / ### Brand Voice
+    { p: /#{1,4}\s*Professional[：:\s]*([\s\S]*?)(?=#{1,4}\s*Friendly)/i, f: /#{1,4}\s*Friendly[：:\s]*([\s\S]*?)(?=#{1,4}\s*Brand)/i, b: /#{1,4}\s*Brand\s*Voice?[：:\s]*([\s\S]*?)$/i },
+    // 1. Professional / 2. Friendly / 3. Brand
+    { p: /1[\.\)]\s*Professional[：:\s]*([\s\S]*?)(?=2[\.\)])/i, f: /2[\.\)]\s*Friendly[：:\s]*([\s\S]*?)(?=3[\.\)])/i, b: /3[\.\)]\s*Brand[：:\s]*([\s\S]*?)$/i },
+  ];
+
+  for (const pat of patterns) {
+    const pm = text.match(pat.p);
+    const fm = text.match(pat.f);
+    const bm = text.match(pat.b);
+    if (pm && fm && bm) {
+      result.professional = cleanText(pm[1]);
+      result.friendly = cleanText(fm[1]);
+      result.brand = cleanText(bm[1]);
+      break;
+    }
   }
+
+  // 如果所有模式都没匹配到，按段落分割
+  if (!result.professional && !result.friendly && !result.brand) {
+    // 按双换行分割段落
+    const paragraphs = text.split(/\n\s*\n/).map(p => cleanText(p)).filter(p => p.length > 20);
+    if (paragraphs.length >= 3) {
+      result.professional = paragraphs[0];
+      result.friendly = paragraphs[1];
+      result.brand = paragraphs[2];
+    } else {
+      result.professional = result.friendly = result.brand = cleanText(text);
+    }
+  }
+
   return result;
 }
 
@@ -88,33 +127,39 @@ module.exports = async (req, res) => {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { review, productType, rating } = req.body || {};
+  const { review, productType, rating, lang } = req.body || {};
   if (!review || !review.trim()) return res.status(400).json({ error: "Please paste the review" });
 
-  const prompt = `A customer left the following negative review for a${productType ? ` ${productType}` : ""} product${rating ? ` (${rating} stars)` : ""}:
+  // 根据语言决定输出语言
+  const outputLang = (lang && lang.startsWith('zh')) ? 'Chinese' : 'English';
+  const langInstruction = outputLang === 'Chinese'
+    ? '用中文输出回复。'
+    : 'Write all replies in English.';
+
+  const prompt = `A customer left the following negative review for a${productType ? ` ${productType}` : ""} product${rating ? ` (${rating})` : ""}:
 
 "${review.trim()}"
 
-Generate 3 different reply styles. Write in English.
+Generate 3 different reply styles. ${langInstruction}
+
+IMPORTANT: Output ONLY the reply text under each label. No markdown formatting (no ###, no **, no bullet points). Just plain text.
 
 [Professional]
-(Standard customer service tone — empathetic, solution-oriented, 3-5 sentences)
-{reply}
+(Standard customer service tone — empathetic, solution-oriented, 3-5 sentences. Write the reply directly, no label repeat.)
 
 [Friendly]
-(Warm, conversational, human — like a real person who cares, 3-5 sentences)
-{reply}
+(Warm, conversational, human — like a real person who cares, 3-5 sentences. Write the reply directly.)
 
 [Brand Voice]
-(Premium brand tone — confident, polished, shows brand values, 3-5 sentences)
-{reply}
+(Premium brand tone — confident, polished, shows brand values, 3-5 sentences. Write the reply directly.)
 
 Requirements:
 - Show empathy first, then offer a solution
 - Never admit legal liability
-- Subtly encourage the customer to update their review
+- Subtly encourage the customer to reconsider or update their review
 - Sound human, not robotic
-- Include a call to action (contact support, DM us, etc.)`;
+- Include a call to action (contact support, DM us, etc.)
+- Do NOT use any markdown formatting`;
 
   try {
     const aiText = await callHunyuan(prompt);
