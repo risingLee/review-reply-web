@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ReviewReply AI - Negative Review Reply Generator for Shopify Sellers</title>
-  <meta name="description" content="Free AI-powered tool to generate professional, empathetic replies to negative product reviews. Built for Shopify & e-commerce sellers.">
-  <meta name="keywords" content="shopify review reply, negative review response, ecommerce customer service, review reply generator">
+  <title>ReviewReply AI - Negative Review Reply Generator</title>
+  <meta name="description" content="AI-powered tool to generate professional replies to negative reviews. 3 free generations, then pay-as-you-go.">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -14,15 +13,15 @@
       min-height: 100vh; color: #e0e0e0;
     }
     .container { max-width: 560px; margin: 0 auto; padding: 24px 16px 80px; }
-    .header { text-align: center; padding: 36px 0 28px; }
-    .header h1 { font-size: 30px; color: #fff; font-weight: 700; letter-spacing: -0.5px; }
-    .header .accent { color: #f7b731; }
-    .header p { color: rgba(255,255,255,0.6); font-size: 15px; margin-top: 8px; line-height: 1.5; }
-    .badge {
-      display: inline-block; margin-top: 12px; padding: 6px 16px;
-      background: rgba(247,183,49,0.15); border: 1px solid rgba(247,183,49,0.3);
-      border-radius: 20px; font-size: 12px; color: #f7b731;
+
+    /* Credits badge */
+    .credits-badge {
+      position: fixed; top: 16px; left: 16px; z-index: 100;
+      padding: 8px 16px; background: rgba(247,183,49,0.15);
+      border: 1px solid rgba(247,183,49,0.3); border-radius: 20px;
+      font-size: 13px; color: #f7b731; cursor: pointer;
     }
+    .credits-badge.unlimited { background: rgba(0,184,148,0.2); border-color: #00b894; color: #00b894; }
 
     /* Language switcher */
     .lang-switch {
@@ -30,142 +29,96 @@
       display: flex; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
       border-radius: 20px; overflow: hidden;
     }
-    .lang-btn {
-      padding: 6px 14px; font-size: 12px; color: rgba(255,255,255,0.5);
-      cursor: pointer; transition: all 0.15s; border: none; background: none;
-    }
+    .lang-btn { padding: 6px 14px; font-size: 12px; color: rgba(255,255,255,0.5); cursor: pointer; transition: all 0.15s; border: none; background: none; }
     .lang-btn.active { background: rgba(247,183,49,0.2); color: #f7b731; }
 
-    .card {
-      background: rgba(255,255,255,0.06); backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
-      padding: 24px; margin-bottom: 16px;
-    }
+    .header { text-align: center; padding: 56px 0 28px; }
+    .header h1 { font-size: 30px; color: #fff; font-weight: 700; }
+    .header .accent { color: #f7b731; }
+    .header p { color: rgba(255,255,255,0.6); font-size: 15px; margin-top: 8px; }
+
+    .card { background: rgba(255,255,255,0.06); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 24px; margin-bottom: 16px; }
     .card-title { font-size: 14px; font-weight: 600; margin-bottom: 14px; color: rgba(255,255,255,0.9); }
 
-    /* Review Input */
-    .review-input {
-      width: 100%; min-height: 120px; padding: 14px; border: 2px solid rgba(255,255,255,0.1);
-      border-radius: 14px; font-size: 15px; line-height: 1.6; resize: none; outline: none;
-      font-family: inherit; background: rgba(0,0,0,0.2); color: #fff; transition: border-color 0.2s;
-    }
+    .review-input { width: 100%; min-height: 120px; padding: 14px; border: 2px solid rgba(255,255,255,0.1); border-radius: 14px; font-size: 15px; line-height: 1.6; resize: none; outline: none; background: rgba(0,0,0,0.2); color: #fff; }
     .review-input::placeholder { color: rgba(255,255,255,0.3); }
     .review-input:focus { border-color: #f7b731; }
     .char-count { text-align: right; font-size: 12px; color: rgba(255,255,255,0.3); margin-top: 6px; }
 
-    /* Options row */
     .options-row { display: flex; gap: 12px; }
     .option-group { flex: 1; }
     .option-label { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 8px; }
-    .option-select {
-      width: 100%; padding: 10px 12px; border: 2px solid rgba(255,255,255,0.1);
-      border-radius: 10px; font-size: 14px; outline: none; background: rgba(0,0,0,0.2);
-      color: #fff; appearance: none; cursor: pointer;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%23999' stroke-width='1.5'/%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: right 12px center;
-    }
-    .option-select:focus { border-color: #f7b731; }
+    .option-select { width: 100%; padding: 10px 12px; border: 2px solid rgba(255,255,255,0.1); border-radius: 10px; font-size: 14px; background: rgba(0,0,0,0.2); color: #fff; appearance: none; cursor: pointer; }
     .option-select option { background: #1a1a2e; color: #fff; }
 
-    /* Star rating */
     .stars { display: flex; gap: 6px; }
-    .star {
-      width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
-      border: 2px solid rgba(255,255,255,0.1); border-radius: 10px; font-size: 18px;
-      cursor: pointer; transition: all 0.15s;
-    }
-    .star:hover { border-color: #f7b731; }
+    .star { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(255,255,255,0.1); border-radius: 10px; font-size: 18px; cursor: pointer; }
     .star.active { border-color: #f7b731; background: rgba(247,183,49,0.15); }
 
-    /* Examples */
-    .examples { margin-bottom: 16px; }
-    .examples-label { font-size: 13px; color: rgba(255,255,255,0.4); margin-bottom: 10px; }
-    .example-chips { display: flex; flex-direction: column; gap: 8px; }
-    .example-chip {
-      padding: 10px 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 12px; font-size: 13px; color: rgba(255,255,255,0.6); cursor: pointer;
-      transition: all 0.15s; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
+    .example-chips { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .example-chip { padding: 10px 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; font-size: 13px; color: rgba(255,255,255,0.6); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .example-chip:hover { border-color: #f7b731; color: #f7b731; }
 
-    /* Button */
-    .generate-btn {
-      width: 100%; padding: 16px; background: linear-gradient(135deg, #f7b731, #fc5c65);
-      color: #fff; font-size: 17px; font-weight: 700; border: none; border-radius: 40px;
-      cursor: pointer; margin: 20px 0; box-shadow: 0 6px 24px rgba(247,183,49,0.3);
-      transition: all 0.15s; letter-spacing: 0.3px;
-    }
-    .generate-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(247,183,49,0.4); }
-    .generate-btn:active { transform: scale(0.98); }
-    .generate-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .generate-btn { width: 100%; padding: 16px; background: linear-gradient(135deg, #f7b731, #fc5c65); color: #fff; font-size: 17px; font-weight: 700; border: none; border-radius: 40px; cursor: pointer; margin: 20px 0; box-shadow: 0 6px 24px rgba(247,183,49,0.3); }
+    .generate-btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .loading { display: inline-flex; align-items: center; gap: 8px; }
-    .dot-pulse {
-      width: 8px; height: 8px; background: #fff; border-radius: 50%;
-      animation: pulse 0.8s infinite alternate;
-    }
+    .dot-pulse { width: 8px; height: 8px; background: #fff; border-radius: 50%; animation: pulse 0.8s infinite alternate; }
     @keyframes pulse { from { opacity: 0.3; transform: scale(0.8); } to { opacity: 1; transform: scale(1.2); } }
 
-    /* Results */
-    .results-section { display: none; margin-top: 8px; }
+    .results-section { display: none; }
     .results-section.show { display: block; animation: fadeIn 0.3s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .results-title { font-size: 18px; font-weight: 700; text-align: center; margin-bottom: 16px; color: #fff; }
 
-    .result-card {
-      background: rgba(255,255,255,0.06); backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
-      padding: 20px; margin-bottom: 14px; border-left: 4px solid rgba(255,255,255,0.1);
-    }
+    .result-card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 20px; margin-bottom: 14px; border-left: 4px solid; }
     .result-card.professional { border-left-color: #4834d4; }
     .result-card.friendly { border-left-color: #f7b731; }
     .result-card.brand { border-left-color: #fc5c65; }
-    .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .result-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
     .result-tag { font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 6px; }
     .tag-pro { background: rgba(72,52,212,0.2); color: #a29bfe; }
     .tag-friendly { background: rgba(247,183,49,0.2); color: #f7b731; }
     .tag-brand { background: rgba(252,92,101,0.2); color: #fc5c65; }
-    .result-hint { font-size: 12px; color: rgba(255,255,255,0.4); }
-    .result-text { font-size: 15px; line-height: 1.7; color: rgba(255,255,255,0.85); padding: 8px 0; white-space: pre-wrap; }
-    .copy-btn {
-      display: flex; align-items: center; justify-content: flex-end; gap: 4px;
-      font-size: 13px; color: #f7b731; cursor: pointer; padding-top: 10px;
-      border-top: 1px solid rgba(255,255,255,0.08);
-    }
-    .copy-btn:hover { opacity: 0.7; }
+    .result-text { font-size: 15px; line-height: 1.7; color: rgba(255,255,255,0.85); white-space: pre-wrap; }
+    .copy-btn { display: flex; justify-content: flex-end; gap: 4px; font-size: 13px; color: #f7b731; cursor: pointer; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); }
 
     .result-actions { display: flex; justify-content: center; gap: 12px; margin-top: 16px; }
-    .action-btn {
-      padding: 10px 20px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 24px; font-size: 13px; color: rgba(255,255,255,0.6); cursor: pointer; transition: all 0.15s;
-    }
+    .action-btn { padding: 10px 20px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; font-size: 13px; color: rgba(255,255,255,0.6); cursor: pointer; }
     .action-btn:hover { border-color: #f7b731; color: #f7b731; }
 
-    .error-msg {
-      display: none; padding: 12px 16px; background: rgba(252,92,101,0.1); border: 1px solid rgba(252,92,101,0.3);
-      border-radius: 12px; color: #fc5c65; font-size: 14px; margin-bottom: 12px;
-    }
+    .error-msg { display: none; padding: 12px 16px; background: rgba(252,92,101,0.1); border: 1px solid rgba(252,92,101,0.3); border-radius: 12px; color: #fc5c65; font-size: 14px; margin-bottom: 12px; }
     .error-msg.show { display: block; }
+
+    /* Paywall Modal */
+    .modal-mask { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 200; display: none; align-items: center; justify-content: center; }
+    .modal-mask.show { display: flex; }
+    .modal-content { width: 90%; max-width: 400px; background: #1a1a2e; border-radius: 24px; padding: 32px 24px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+    .modal-emoji { font-size: 48px; margin-bottom: 12px; }
+    .modal-title { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .modal-desc { font-size: 14px; color: rgba(255,255,255,0.6); margin-bottom: 24px; }
+    .pricing-grid { display: grid; gap: 12px; margin-bottom: 20px; }
+    .pricing-card { padding: 16px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); border-radius: 16px; cursor: pointer; transition: all 0.15s; }
+    .pricing-card:hover { border-color: #f7b731; }
+    .pricing-card.popular { border-color: #f7b731; background: rgba(247,183,49,0.1); position: relative; }
+    .popular-badge { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #f7b731; color: #000; font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 10px; }
+    .pricing-amount { font-size: 28px; font-weight: 700; color: #fff; }
+    .pricing-amount span { font-size: 14px; color: rgba(255,255,255,0.5); }
+    .pricing-desc { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 4px; }
+    .modal-close { margin-top: 16px; font-size: 13px; color: rgba(255,255,255,0.4); cursor: pointer; }
+
+    .toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.85); color: #fff; padding: 12px 28px; border-radius: 8px; font-size: 14px; z-index: 999; display: none; }
+    .toast.show { display: block; }
 
     .footer { text-align: center; padding: 36px 0 16px; }
     .footer-text { font-size: 12px; color: rgba(255,255,255,0.3); }
-    .footer a { color: rgba(255,255,255,0.4); text-decoration: none; }
-    .footer a:hover { color: #f7b731; }
-
-    .toast {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      background: rgba(0,0,0,0.85); color: #fff; padding: 12px 28px; border-radius: 8px;
-      font-size: 14px; z-index: 999; display: none;
-    }
-    .toast.show { display: block; animation: fadeIn 0.2s ease; }
-
-    /* SEO hero */
-    .hero-stats { display: flex; justify-content: center; gap: 28px; margin-top: 20px; }
-    .stat { text-align: center; }
-    .stat-num { font-size: 22px; font-weight: 700; color: #f7b731; }
-    .stat-label { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
   </style>
 </head>
 <body>
+  <!-- Credits Badge -->
+  <div class="credits-badge" id="creditsBadge" onclick="showPaywall()">
+    ⚡ <span id="creditsText">3 credits left</span>
+  </div>
+
+  <!-- Language Switch -->
   <div class="lang-switch">
     <button class="lang-btn active" data-lang="en" onclick="switchLang('en')">EN</button>
     <button class="lang-btn" data-lang="zh" onclick="switchLang('zh')">中文</button>
@@ -174,23 +127,15 @@
   <div class="container">
     <div class="header">
       <h1>⭐ Review<span class="accent">Reply</span> AI</h1>
-      <p>Turn negative reviews into opportunities.<br>Generate professional replies in seconds.</p>
-      <div class="badge">🚀 Free for Shopify Sellers</div>
-      <div class="hero-stats">
-        <div class="stat"><div class="stat-num">3</div><div class="stat-label">Reply Styles</div></div>
-        <div class="stat"><div class="stat-num">10s</div><div class="stat-label">Generation</div></div>
-        <div class="stat"><div class="stat-num">Free</div><div class="stat-label">No Sign Up</div></div>
-      </div>
+      <p data-i18n="subtitle">Turn negative reviews into opportunities.<br>3 free, then pay-as-you-go.</p>
     </div>
 
-    <!-- Review Input -->
     <div class="card">
       <div class="card-title" data-i18n="pasteTitle">📋 Paste the Negative Review</div>
-      <textarea class="review-input" id="reviewText" placeholder="e.g. This product broke after 2 days. Total waste of money. Very disappointed..." maxlength="1000"></textarea>
+      <textarea class="review-input" id="reviewText" placeholder="e.g. This product broke after 2 days..." maxlength="1000"></textarea>
       <div class="char-count"><span id="charCount">0</span>/1000</div>
     </div>
 
-    <!-- Options -->
     <div class="card">
       <div class="card-title" data-i18n="optionsTitle">⚙️ Options</div>
       <div class="options-row">
@@ -199,13 +144,10 @@
           <select class="option-select" id="productType">
             <option value="">Any</option>
             <option value="Electronics">Electronics</option>
-            <option value="Clothing & Fashion">Clothing & Fashion</option>
-            <option value="Home & Garden">Home & Garden</option>
-            <option value="Beauty & Health">Beauty & Health</option>
-            <option value="Food & Beverage">Food & Beverage</option>
-            <option value="Toys & Games">Toys & Games</option>
-            <option value="Sports & Outdoors">Sports & Outdoors</option>
-            <option value="Pet Supplies">Pet Supplies</option>
+            <option value="Clothing">Clothing & Fashion</option>
+            <option value="Home">Home & Garden</option>
+            <option value="Beauty">Beauty & Health</option>
+            <option value="Toys">Toys & Games</option>
           </select>
         </div>
         <div class="option-group">
@@ -219,138 +161,142 @@
       </div>
     </div>
 
-    <!-- Examples -->
-    <div class="examples">
-      <div class="examples-label">💡 Try these examples</div>
-      <div class="example-chips">
-        <div class="example-chip" onclick="useExample(0)">"Product broke after 2 days. Complete waste of money."</div>
-        <div class="example-chip" onclick="useExample(1)">"Looks nothing like the photos. Very misleading listing."</div>
-        <div class="example-chip" onclick="useExample(2)">"Took 3 weeks to arrive and the package was damaged."</div>
-      </div>
+    <div class="example-chips">
+      <div class="example-chip" onclick="useExample(0)">"Product broke after 2 days. Complete waste of money."</div>
+      <div class="example-chip" onclick="useExample(1)">"Looks nothing like the photos. Very misleading."</div>
+      <div class="example-chip" onclick="useExample(2)">"Took 3 weeks to arrive. Package was damaged."</div>
     </div>
 
     <div class="error-msg" id="errorMsg"></div>
 
     <button class="generate-btn" id="generateBtn" onclick="generate()">⚡ Generate Reply</button>
 
-    <!-- Results -->
     <div class="results-section" id="results">
       <div class="results-title" data-i18n="resultsTitle">📤 Your Replies</div>
 
       <div class="result-card professional">
         <div class="result-header">
-          <span class="result-tag tag-pro" data-i18n="tagPro">👔 Professional</span>
-          <span class="result-hint" data-i18n="hintPro">Standard CS tone</span>
+          <span class="result-tag tag-pro">👔 Professional</span>
         </div>
         <div class="result-text" id="proText"></div>
-        <div class="copy-btn" data-i18n="copy" onclick="copyText('proText')">📋 Copy</div>
+        <div class="copy-btn" onclick="copyText('proText')">📋 Copy</div>
       </div>
 
       <div class="result-card friendly">
         <div class="result-header">
-          <span class="result-tag tag-friendly" data-i18n="tagFriendly">😊 Friendly</span>
-          <span class="result-hint" data-i18n="hintFriendly">Warm & conversational</span>
+          <span class="result-tag tag-friendly">😊 Friendly</span>
         </div>
         <div class="result-text" id="friendlyText"></div>
-        <div class="copy-btn" data-i18n="copy" onclick="copyText('friendlyText')">📋 Copy</div>
+        <div class="copy-btn" onclick="copyText('friendlyText')">📋 Copy</div>
       </div>
 
       <div class="result-card brand">
         <div class="result-header">
-          <span class="result-tag tag-brand" data-i18n="tagBrand">🏆 Brand Voice</span>
-          <span class="result-hint" data-i18n="hintBrand">Premium & polished</span>
+          <span class="result-tag tag-brand">🏆 Brand Voice</span>
         </div>
         <div class="result-text" id="brandText"></div>
-        <div class="copy-btn" data-i18n="copy" onclick="copyText('brandText')">📋 Copy</div>
+        <div class="copy-btn" onclick="copyText('brandText')">📋 Copy</div>
       </div>
 
       <div class="result-actions">
-        <div class="action-btn" data-i18n="regenerate" onclick="retry()">🔄 Regenerate</div>
-        <div class="action-btn" data-i18n="share" onclick="share()">📤 Share</div>
+        <div class="action-btn" onclick="retry()">🔄 Regenerate</div>
+        <div class="action-btn" onclick="share()">📤 Share</div>
       </div>
     </div>
 
     <div class="footer">
-      <div class="footer-text" data-i18n="footer">Built for Shopify sellers · No sign-up required · 100% Free</div>
+      <div class="footer-text">Built for Shopify sellers · Powered by AI</div>
+    </div>
+  </div>
+
+  <!-- Paywall Modal -->
+  <div class="modal-mask" id="paywallModal">
+    <div class="modal-content">
+      <div class="modal-emoji">⚡</div>
+      <div class="modal-title" id="paywallTitle">Out of Credits</div>
+      <div class="modal-desc" id="paywallDesc">Get more generations</div>
+      <div class="pricing-grid">
+        <div class="pricing-card" onclick="buyCredits('20')">
+          <div class="pricing-amount">$1</div>
+          <div class="pricing-desc">20 generations</div>
+        </div>
+        <div class="pricing-card popular" onclick="buyCredits('100')">
+          <div class="popular-badge">BEST VALUE</div>
+          <div class="pricing-amount">$3</div>
+          <div class="pricing-desc">100 generations</div>
+        </div>
+        <div class="pricing-card" onclick="buyCredits('unlimited')">
+          <div class="pricing-amount">$5</div>
+          <div class="pricing-desc">Unlimited (7 days)</div>
+        </div>
+      </div>
+      <div class="modal-close" onclick="hidePaywall()">Maybe later</div>
     </div>
   </div>
 
   <div class="toast" id="toast"></div>
 
   <script>
+    // ========== Config ==========
+    const LEMON_SQUEEZY_STORE = "your-store"; // 替换为你的 Lemon Squeezy store
+    const LEMON_SQUEEZY_VARIANTS = {
+      '20': 'variant-id-20',
+      '100': 'variant-id-100',
+      'unlimited': 'variant-id-unlimited'
+    };
+
     // ========== i18n ==========
     const i18n = {
       en: {
-        title: '⭐ Review<span class="accent">Reply</span> AI',
-        subtitle: 'Turn negative reviews into opportunities.<br>Generate professional replies in seconds.',
-        badge: '🚀 Free for Shopify Sellers',
-        stat1: 'Reply Styles', stat2: 'Generation', stat3: 'No Sign Up',
-        pasteTitle: '📋 Paste the Negative Review',
-        placeholder: 'e.g. This product broke after 2 days. Total waste of money...',
-        optionsTitle: '⚙️ Options',
-        categoryLabel: 'Product Category',
-        ratingLabel: 'Star Rating',
-        categories: ['Any','Electronics','Clothing & Fashion','Home & Garden','Beauty & Health','Food & Beverage','Toys & Games','Sports & Outdoors','Pet Supplies'],
-        examplesLabel: '💡 Try these examples',
-        ex1: '"Product broke after 2 days. Complete waste of money."',
-        ex2: '"Looks nothing like the photos. Very misleading listing."',
-        ex3: '"Took 3 weeks to arrive and the package was damaged."',
-        btnGenerate: '⚡ Generate Reply',
-        btnGenerating: 'Generating...',
-        resultsTitle: '📤 Your Replies',
-        tagPro: '👔 Professional', hintPro: 'Standard CS tone',
-        tagFriendly: '😊 Friendly', hintFriendly: 'Warm & conversational',
-        tagBrand: '🏆 Brand Voice', hintBrand: 'Premium & polished',
-        copy: '📋 Copy', regenerate: '🔄 Regenerate', share: '📤 Share',
-        footer: 'Built for Shopify sellers · No sign-up required · 100% Free',
-        errEmpty: 'Please paste a review first',
-        errFail: 'Generation failed. Please try again.',
-        copied: 'Copied! ✅', linkCopied: 'Link copied!',
+        subtitle: "Turn negative reviews into opportunities.<br>3 free, then pay-as-you-go.",
+        pasteTitle: "📋 Paste the Negative Review",
+        optionsTitle: "⚙️ Options",
+        categoryLabel: "Product Category",
+        ratingLabel: "Star Rating",
+        resultsTitle: "📤 Your Replies",
+        btnGenerate: "⚡ Generate Reply",
+        btnGenerating: "Generating...",
+        errEmpty: "Please paste a review first",
+        errNoCredits: "No credits left. Buy more to continue.",
+        errFail: "Generation failed. Please try again.",
+        copied: "Copied! ✅",
+        outOfCredits: "Out of Credits",
+        getMore: "Choose a plan to continue",
+        creditsLeft: "credits left",
+        unlimited: "Unlimited",
       },
       zh: {
-        title: '⭐ 差评<span class="accent">修复</span>助手',
-        subtitle: '把差评变成挽回客户的机会。<br>一键生成专业回复。',
-        badge: '🚀 免费使用，无需注册',
-        stat1: '回复风格', stat2: '生成速度', stat3: '无需注册',
-        pasteTitle: '📋 粘贴差评内容',
-        placeholder: '例如：这个产品用了两天就坏了，完全浪费钱...',
-        optionsTitle: '⚙️ 选项',
-        categoryLabel: '产品类别',
-        ratingLabel: '星级评分',
-        categories: ['不限','电子产品','服装时尚','家居园艺','美妆健康','食品饮料','玩具游戏','运动户外','宠物用品'],
-        examplesLabel: '💡 试试这些',
-        ex1: '"产品用了两天就坏了，完全浪费钱。"',
-        ex2: '"跟图片完全不一样，太坑了。"',
-        ex3: '"等了三周才到，包装还是破的。"',
-        btnGenerate: '⚡ 生成回复',
-        btnGenerating: '生成中...',
-        resultsTitle: '📤 回复结果',
-        tagPro: '👔 专业客服版', hintPro: '标准客服语气',
-        tagFriendly: '😊 亲切版', hintFriendly: '温暖有人情味',
-        tagBrand: '🏆 品牌版', hintBrand: '高端品牌调性',
-        copy: '📋 复制', regenerate: '🔄 换一批', share: '📤 分享',
-        footer: '为电商卖家打造 · 无需注册 · 完全免费',
-        errEmpty: '请先粘贴差评内容',
-        errFail: '生成失败，请重试',
-        copied: '已复制 ✅', linkCopied: '链接已复制！',
+        subtitle: "把差评变成挽回客户的机会。<br>3次免费，之后按需付费。",
+        pasteTitle: "📋 粘贴差评内容",
+        optionsTitle: "⚙️ 选项",
+        categoryLabel: "产品类别",
+        ratingLabel: "星级评分",
+        resultsTitle: "📤 回复结果",
+        btnGenerate: "⚡ 生成回复",
+        btnGenerating: "生成中...",
+        errEmpty: "请先粘贴差评内容",
+        errNoCredits: "次数已用完，请购买更多",
+        errFail: "生成失败，请重试",
+        copied: "已复制 ✅",
+        outOfCredits: "次数已用完",
+        getMore: "选择套餐继续",
+        creditsLeft: "次剩余",
+        unlimited: "无限次",
       }
     };
 
     let currentLang = 'en';
-    const categoryValues = ['','Electronics','Clothing & Fashion','Home & Garden','Beauty & Health','Food & Beverage','Toys & Games','Sports & Outdoors','Pet Supplies'];
+    let selectedRating = 1;
+    let loading = false;
+    let credits = 3;
+    let unlimited = false;
+    let userId = localStorage.getItem('rr_user_id') || generateUserId();
 
-    const examples_data = {
-      en: [
-        { text: 'Product broke after 2 days. Complete waste of money. I want a refund.', type: 'Electronics', rating: 1 },
-        { text: 'Looks nothing like the photos. The color is totally different and the material feels cheap.', type: 'Clothing & Fashion', rating: 1 },
-        { text: 'Took 3 weeks to arrive and the package was damaged. Customer service was unhelpful.', type: '', rating: 2 },
-      ],
-      zh: [
-        { text: '产品用了两天就坏了，完全浪费钱，要求退款。', type: 'Electronics', rating: 1 },
-        { text: '跟图片完全不一样，颜色差很多，材质也很差。', type: 'Clothing & Fashion', rating: 1 },
-        { text: '等了三周才到货，包装还是破的，客服也不管。', type: '', rating: 2 },
-      ]
-    };
+    function generateUserId() {
+      const id = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('rr_user_id', id);
+      return id;
+    }
 
     function switchLang(lang) {
       currentLang = lang;
@@ -360,50 +306,50 @@
 
     function applyLang() {
       const t = i18n[currentLang];
-      document.querySelector('.header h1').innerHTML = t.title;
-      document.querySelector('.header p').innerHTML = t.subtitle;
-      document.querySelector('.badge').textContent = t.badge;
-      const stats = document.querySelectorAll('.stat-label');
-      stats[0].textContent = t.stat1; stats[1].textContent = t.stat2; stats[2].textContent = t.stat3;
+      document.querySelector('[data-i18n="subtitle"]').innerHTML = t.subtitle;
       document.querySelector('[data-i18n="pasteTitle"]').textContent = t.pasteTitle;
-      document.getElementById('reviewText').placeholder = t.placeholder;
       document.querySelector('[data-i18n="optionsTitle"]').textContent = t.optionsTitle;
       document.querySelector('[data-i18n="categoryLabel"]').textContent = t.categoryLabel;
       document.querySelector('[data-i18n="ratingLabel"]').textContent = t.ratingLabel;
-      // 更新下拉选项
-      const sel = document.getElementById('productType');
-      t.categories.forEach((cat, i) => { sel.options[i].textContent = cat; });
-      document.querySelector('.examples-label').textContent = t.examplesLabel;
-      const chips = document.querySelectorAll('.example-chip');
-      chips[0].textContent = t.ex1; chips[1].textContent = t.ex2; chips[2].textContent = t.ex3;
-      document.getElementById('generateBtn').innerHTML = t.btnGenerate;
-      document.querySelector('.results-title').textContent = t.resultsTitle;
-      document.querySelectorAll('.result-tag')[0].textContent = t.tagPro;
-      document.querySelectorAll('.result-hint')[0].textContent = t.hintPro;
-      document.querySelectorAll('.result-tag')[1].textContent = t.tagFriendly;
-      document.querySelectorAll('.result-hint')[1].textContent = t.hintFriendly;
-      document.querySelectorAll('.result-tag')[2].textContent = t.tagBrand;
-      document.querySelectorAll('.result-hint')[2].textContent = t.hintBrand;
-      document.querySelectorAll('.copy-btn').forEach(b => b.lastChild.textContent = ' Copy');
-      if (currentLang === 'zh') document.querySelectorAll('.copy-btn').forEach(b => b.lastChild.textContent = ' 复制');
-      document.querySelectorAll('.action-btn')[0].textContent = t.regenerate;
-      document.querySelectorAll('.action-btn')[1].textContent = t.share;
-      document.querySelector('.footer-text').textContent = t.footer;
-      document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : 'en';
+      document.querySelector('[data-i18n="resultsTitle"]').textContent = t.resultsTitle;
+      document.getElementById('generateBtn').textContent = loading ? t.btnGenerating : t.btnGenerate;
+      document.getElementById('paywallTitle').textContent = t.outOfCredits;
+      document.getElementById('paywallDesc').textContent = t.getMore;
+      updateCreditsDisplay();
     }
 
-    // 自动检测语言
     function detectLang() {
-      const browserLang = navigator.language || navigator.userLanguage || 'en';
-      return browserLang.startsWith('zh') ? 'zh' : 'en';
+      return (navigator.language || '').startsWith('zh') ? 'zh' : 'en';
     }
 
-    let selectedRating = 1;
-    let loading = false;
+    function updateCreditsDisplay() {
+      const t = i18n[currentLang];
+      const badge = document.getElementById('creditsBadge');
+      const text = document.getElementById('creditsText');
+      if (unlimited) {
+        badge.classList.add('unlimited');
+        text.textContent = t.unlimited;
+      } else {
+        badge.classList.remove('unlimited');
+        text.textContent = credits + ' ' + t.creditsLeft;
+      }
+    }
 
-    document.getElementById('reviewText').addEventListener('input', (e) => {
-      document.getElementById('charCount').textContent = e.target.value.length;
-    });
+    async function checkCredits() {
+      try {
+        const resp = await fetch('/api/check-credits', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          credits = data.credits;
+          unlimited = data.unlimited;
+          updateCreditsDisplay();
+        }
+      } catch (e) { console.error('Check credits failed', e); }
+    }
 
     function selectRating(r) {
       selectedRating = r;
@@ -413,17 +359,33 @@
     }
 
     function useExample(idx) {
-      const ex = examples_data[currentLang][idx];
-      document.getElementById('reviewText').value = ex.text;
-      document.getElementById('charCount').textContent = ex.text.length;
-      if (ex.type) document.getElementById('productType').value = ex.type;
-      selectRating(ex.rating);
+      const examples = [
+        "Product broke after 2 days. Complete waste of money.",
+        "Looks nothing like the photos. Very misleading listing.",
+        "Took 3 weeks to arrive and the package was damaged."
+      ];
+      document.getElementById('reviewText').value = examples[idx];
+      document.getElementById('charCount').textContent = examples[idx].length;
     }
 
     function showToast(msg) {
       const t = document.getElementById('toast');
       t.textContent = msg; t.classList.add('show');
       setTimeout(() => t.classList.remove('show'), 1500);
+    }
+
+    function showPaywall() {
+      document.getElementById('paywallModal').classList.add('show');
+    }
+
+    function hidePaywall() {
+      document.getElementById('paywallModal').classList.remove('show');
+    }
+
+    function buyCredits(variant) {
+      const variantId = LEMON_SQUEEZY_VARIANTS[variant];
+      const checkoutUrl = `https://${LEMON_SQUEEZY_STORE}.lemonsqueezy.com/checkout/buy/${variantId}?checkout[custom][userId]=${userId}&checkout[custom][variant]=${variant}`;
+      window.open(checkoutUrl, '_blank');
     }
 
     async function generate() {
@@ -439,43 +401,60 @@
         return;
       }
 
-      const productType = document.getElementById('productType').value;
+      if (!unlimited && credits <= 0) {
+        showPaywall();
+        return;
+      }
+
       const btn = document.getElementById('generateBtn');
       loading = true; btn.disabled = true;
-      btn.innerHTML = `<span class="loading"><span class="dot-pulse"></span> ${t.btnGenerating}</span>`;
+      btn.innerHTML = '<span class="loading"><span class="dot-pulse"></span> ' + t.btnGenerating + '</span>';
 
       try {
         const resp = await fetch('/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ review, productType, rating: `${selectedRating} star`, lang: currentLang }),
+          body: JSON.stringify({
+            review,
+            productType: document.getElementById('productType').value,
+            rating: selectedRating + ' star',
+            lang: currentLang,
+            userId
+          })
         });
         const data = await resp.json();
+
+        if (resp.status === 403 && data.code === 'NO_CREDITS') {
+          credits = 0;
+          updateCreditsDisplay();
+          showPaywall();
+          throw new Error(t.errNoCredits);
+        }
+
         if (!resp.ok || !data.success) throw new Error(data.error || t.errFail);
+
+        credits = data.credits;
+        unlimited = data.unlimited;
+        updateCreditsDisplay();
 
         document.getElementById('proText').textContent = data.data.professional;
         document.getElementById('friendlyText').textContent = data.data.friendly;
         document.getElementById('brandText').textContent = data.data.brand;
         document.getElementById('results').classList.add('show');
-        document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
       } catch (err) {
         errorMsg.textContent = err.message || t.errFail;
         errorMsg.classList.add('show');
       } finally {
         loading = false; btn.disabled = false;
-        btn.innerHTML = t.btnGenerate;
+        btn.textContent = t.btnGenerate;
       }
     }
 
     function copyText(id) {
       const text = document.getElementById(id).textContent;
-      const msg = i18n[currentLang].copied;
-      navigator.clipboard.writeText(text).then(() => showToast(msg)).catch(() => {
-        const ta = document.createElement('textarea');
-        ta.value = text; document.body.appendChild(ta);
-        ta.select(); document.execCommand('copy');
-        document.body.removeChild(ta);
-        showToast(msg);
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(i18n[currentLang].copied);
       });
     }
 
@@ -485,25 +464,32 @@
     }
 
     function share() {
-      const t = i18n[currentLang];
       if (navigator.share) {
-        navigator.share({ title: 'ReviewReply AI', text: currentLang === 'zh' ? '差评修复助手 - 一键生成专业回复' : 'Free AI tool to reply to negative reviews', url: location.href });
+        navigator.share({ title: 'ReviewReply AI', url: location.href });
       } else {
-        navigator.clipboard.writeText(location.href).then(() => showToast(t.linkCopied));
+        navigator.clipboard.writeText(location.href);
+        showToast('Link copied!');
       }
     }
 
-    document.getElementById('reviewText').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); generate(); }
-    });
-
-    // 初始化：自动检测语言
+    // Init
     (function init() {
       const lang = detectLang();
-      currentLang = lang;
-      document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
-      applyLang();
+      switchLang(lang);
+      checkCredits();
+
+      // Check for payment success (from URL param)
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('payment') === 'success') {
+        showToast(currentLang === 'zh' ? '支付成功！' : 'Payment successful!');
+        checkCredits();
+        history.replaceState({}, '', location.pathname);
+      }
     })();
+
+    document.getElementById('reviewText').addEventListener('input', (e) => {
+      document.getElementById('charCount').textContent = e.target.value.length;
+    });
   </script>
 </body>
 </html>

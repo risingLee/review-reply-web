@@ -1,6 +1,7 @@
 const https = require("https");
 const crypto = require("crypto");
 
+// ========== 腾讯混元 API ==========
 function getHmacSHA256(key, msg) { return crypto.createHmac("sha256", key).update(msg).digest(); }
 function sha256Hex(msg) { return crypto.createHash("sha256").update(msg).digest("hex"); }
 
@@ -33,7 +34,7 @@ function callHunyuan(prompt) {
     const body = JSON.stringify({
       Model: "hunyuan-lite",
       Messages: [
-        { Role: "system", Content: "You are a senior e-commerce customer service expert. You help Shopify sellers craft professional, empathetic replies to negative reviews. Output ONLY the reply text for each style, no markdown, no headers, no formatting marks." },
+        { Role: "system", Content: "You are a senior e-commerce customer service expert. Output ONLY plain text, no markdown." },
         { Role: "user", Content: prompt },
       ],
       Temperature: 0.8, TopP: 0.9, Stream: false,
@@ -65,37 +66,26 @@ function callHunyuan(prompt) {
   });
 }
 
-// 清理markdown和多余标记
 function cleanText(str) {
   return str
-    .replace(/^#{1,4}\s*.*/gm, '')       // 移除 ### 标题行
-    .replace(/\*\*(.*?)\*\*/g, '$1')     // 移除 **粗体**
-    .replace(/^\s*[-*]\s*/gm, '')        // 移除列表标记
-    .replace(/```[\s\S]*?```/g, '')      // 移除代码块
-    .replace(/^\s*>\s*/gm, '')           // 移除引用
-    .replace(/\n{3,}/g, '\n\n')          // 合并多余空行
+    .replace(/^#{1,4}\s*.*/gm, '')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/^\s*[-*]\s*/gm, '')
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/^\s*>\s*/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
 
 function parseResponse(text) {
   const result = { professional: "", friendly: "", brand: "" };
-  
-  // 尝试多种分隔模式
   const patterns = [
-    // [Professional] ... [Friendly] ... [Brand Voice]
     { p: /\[Professional\][：:\s]*([\s\S]*?)(?=\[Friendly\])/i, f: /\[Friendly\][：:\s]*([\s\S]*?)(?=\[Brand Voice\])/i, b: /\[Brand Voice\][：:\s]*([\s\S]*?)$/i },
-    // **Professional** / **Friendly** / **Brand Voice**
     { p: /\*?\*?Professional\*?\*?[：:\s]*([\s\S]*?)(?=\*?\*?Friendly)/i, f: /\*?\*?Friendly\*?\*?[：:\s]*([\s\S]*?)(?=\*?\*?Brand)/i, b: /\*?\*?Brand\s*Voice?\*?\*?[：:\s]*([\s\S]*?)$/i },
-    // ### Professional / ### Friendly / ### Brand Voice
     { p: /#{1,4}\s*Professional[：:\s]*([\s\S]*?)(?=#{1,4}\s*Friendly)/i, f: /#{1,4}\s*Friendly[：:\s]*([\s\S]*?)(?=#{1,4}\s*Brand)/i, b: /#{1,4}\s*Brand\s*Voice?[：:\s]*([\s\S]*?)$/i },
-    // 1. Professional / 2. Friendly / 3. Brand
-    { p: /1[\.\)]\s*Professional[：:\s]*([\s\S]*?)(?=2[\.\)])/i, f: /2[\.\)]\s*Friendly[：:\s]*([\s\S]*?)(?=3[\.\)])/i, b: /3[\.\)]\s*Brand[：:\s]*([\s\S]*?)$/i },
   ];
-
   for (const pat of patterns) {
-    const pm = text.match(pat.p);
-    const fm = text.match(pat.f);
-    const bm = text.match(pat.b);
+    const pm = text.match(pat.p), fm = text.match(pat.f), bm = text.match(pat.b);
     if (pm && fm && bm) {
       result.professional = cleanText(pm[1]);
       result.friendly = cleanText(fm[1]);
@@ -103,10 +93,7 @@ function parseResponse(text) {
       break;
     }
   }
-
-  // 如果所有模式都没匹配到，按段落分割
-  if (!result.professional && !result.friendly && !result.brand) {
-    // 按双换行分割段落
+  if (!result.professional) {
     const paragraphs = text.split(/\n\s*\n/).map(p => cleanText(p)).filter(p => p.length > 20);
     if (paragraphs.length >= 3) {
       result.professional = paragraphs[0];
@@ -116,56 +103,153 @@ function parseResponse(text) {
       result.professional = result.friendly = result.brand = cleanText(text);
     }
   }
-
   return result;
 }
 
+// ========== Credits 管理（简单内存存储，重启清零）==========
+// 生产环境应该用 Redis 或数据库
+const creditsDB = new Map();
+const FREE_CREDITS = 3;
+
+function getCredits(userId) {
+  if (!creditsDB.has(userId)) {
+    creditsDB.set(userId, { credits: FREE_CREDITS, unlimited: false, unlimitedExpiry: null });
+  }
+  return creditsDB.get(userId);
+}
+
+function deductCredit(userId) {
+  const user = getCredits(userId);
+  if (user.unlimited && user.unlimitedExpiry > Date.now()) return true;
+  if (user.credits > 0) {
+    user.credits--;
+    return true;
+  }
+  return false;
+}
+
+function addCredits(userId, amount, unlimited = false, days = 0) {
+  const user = getCredits(userId);
+  if (unlimited) {
+    user.unlimited = true;
+    user.unlimitedExpiry = Date.now() + days * 86400000;
+  } else {
+    user.credits += amount;
+  }
+  return user;
+}
+
+// ========== API 路由 ==========
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { review, productType, rating, lang } = req.body || {};
-  if (!review || !review.trim()) return res.status(400).json({ error: "Please paste the review" });
+  const path = req.url;
 
-  // 根据语言决定输出语言
-  const outputLang = (lang && lang.startsWith('zh')) ? 'Chinese' : 'English';
-  const langInstruction = outputLang === 'Chinese'
-    ? '用中文输出回复。'
-    : 'Write all replies in English.';
+  // 1. 检查 credits
+  if (path === "/api/check-credits" && req.method === "POST") {
+    const { userId } = req.body || {};
+    if (!userId) return res.status(400).json({ error: "Missing userId" });
+    const user = getCredits(userId);
+    const hasUnlimited = user.unlimited && user.unlimitedExpiry > Date.now();
+    return res.json({ 
+      success: true, 
+      credits: user.credits, 
+      unlimited: hasUnlimited,
+      unlimitedExpiry: hasUnlimited ? user.unlimitedExpiry : null
+    });
+  }
 
-  const prompt = `A customer left the following negative review for a${productType ? ` ${productType}` : ""} product${rating ? ` (${rating})` : ""}:
+  // 2. 生成回复（扣 credits）
+  if (path === "/api/generate" && req.method === "POST") {
+    const { review, productType, rating, lang, userId } = req.body || {};
+    if (!review || !review.trim()) return res.status(400).json({ error: "Please paste the review" });
+    if (!userId) return res.status(400).json({ error: "Missing userId" });
+
+    // 检查 credits
+    const user = getCredits(userId);
+    const hasUnlimited = user.unlimited && user.unlimitedExpiry > Date.now();
+    if (!hasUnlimited && user.credits <= 0) {
+      return res.status(403).json({ 
+        error: "No credits left", 
+        code: "NO_CREDITS",
+        credits: 0 
+      });
+    }
+
+    // 扣 credits
+    deductCredit(userId);
+
+    const outputLang = (lang && lang.startsWith('zh')) ? 'Chinese' : 'English';
+    const langInstruction = outputLang === 'Chinese' ? '用中文输出回复。' : 'Write all replies in English.';
+
+    const prompt = `A customer left the following negative review for a${productType ? ` ${productType}` : ""} product${rating ? ` (${rating})` : ""}:
 
 "${review.trim()}"
 
 Generate 3 different reply styles. ${langInstruction}
 
-IMPORTANT: Output ONLY the reply text under each label. No markdown formatting (no ###, no **, no bullet points). Just plain text.
+IMPORTANT: Output ONLY plain text. No markdown.
 
 [Professional]
-(Standard customer service tone — empathetic, solution-oriented, 3-5 sentences. Write the reply directly, no label repeat.)
+{reply}
 
 [Friendly]
-(Warm, conversational, human — like a real person who cares, 3-5 sentences. Write the reply directly.)
+{reply}
 
 [Brand Voice]
-(Premium brand tone — confident, polished, shows brand values, 3-5 sentences. Write the reply directly.)
+{reply}`;
 
-Requirements:
-- Show empathy first, then offer a solution
-- Never admit legal liability
-- Subtly encourage the customer to reconsider or update their review
-- Sound human, not robotic
-- Include a call to action (contact support, DM us, etc.)
-- Do NOT use any markdown formatting`;
-
-  try {
-    const aiText = await callHunyuan(prompt);
-    res.status(200).json({ success: true, data: parseResponse(aiText) });
-  } catch (err) {
-    console.error("Generation failed:", err);
-    res.status(500).json({ error: err.message || "Generation failed" });
+    try {
+      const aiText = await callHunyuan(prompt);
+      const result = parseResponse(aiText);
+      const remaining = getCredits(userId);
+      res.status(200).json({ 
+        success: true, 
+        data: result,
+        credits: remaining.credits,
+        unlimited: remaining.unlimited && remaining.unlimitedExpiry > Date.now()
+      });
+    } catch (err) {
+      console.error("Generation failed:", err);
+      res.status(500).json({ error: err.message || "Generation failed" });
+    }
   }
+
+  // 3. Lemon Squeezy 支付回调
+  if (path === "/api/webhook/lemonsqueezy" && req.method === "POST") {
+    const signature = req.headers["x-signature"];
+    const body = JSON.stringify(req.body);
+    
+    // 验证签名（生产环境需要）
+    // const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
+    
+    const { meta, data } = req.body || {};
+    if (!data) return res.status(400).json({ error: "Invalid payload" });
+
+    const orderId = data.id;
+    const status = data.attributes?.status;
+    const customData = data.attributes?.checkout_data?.custom || {};
+    const userId = customData.userId;
+    const variant = customData.variant; // '20', '100', 'unlimited'
+
+    if (status === "paid" && userId) {
+      // 根据套餐添加 credits
+      if (variant === "20") {
+        addCredits(userId, 20);
+      } else if (variant === "100") {
+        addCredits(userId, 100);
+      } else if (variant === "unlimited") {
+        addCredits(userId, 0, true, 7); // 7天无限
+      }
+      console.log(`Payment success: ${userId}, variant: ${variant}`);
+    }
+
+    return res.json({ received: true });
+  }
+
+  // 4. 404
+  return res.status(404).json({ error: "Not found" });
 };
